@@ -35,10 +35,5 @@ install.packages(c('tidyverse', 'caret', 'randomForest', 'nnet', 'forecast'))
 ## Usage
 Each project contains an R script with code and explanations. Run the scripts in **RStudio** or using the R console.
 
-## Future Enhancements
-- Extend models with hyperparameter tuning.
-- Implement additional deep learning techniques.
-- Explore ensemble learning for improved predictions.
-
 ## License
 This repository is open-source under the MIT License.
