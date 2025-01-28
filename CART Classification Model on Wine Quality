@@ -1,0 +1,136 @@
+# Load required libraries
+install.packages("rpart")
+install.packages("rpart.plot")
+install.packages("caret")
+
+library(rpart)
+library(rpart.plot)
+library(caret)
+
+# ==================================
+# Load and Explore Data
+# ==================================
+
+# Load dataset
+WineQuality <- read.csv("C:/Users/cywu/OneDrive - BDP International/Desktop/IE575_Online/Mid-term Exam/Q2_winequality.csv")
+
+# Structure and summary
+str(WineQuality)
+summary(WineQuality)
+
+# Check for missing values
+sum(is.na(WineQuality))  # Expecting 0
+
+# Convert categorical variables to factors
+WineQuality$winetype <- factor(WineQuality$winetype)
+WineQuality$quality <- factor(WineQuality$quality)
+
+# ==================================
+# Train/Test Split
+# ==================================
+
+set.seed(266)  # Set seed for reproducibility
+trainIndex <- createDataPartition(WineQuality$quality, p = 0.8, list = FALSE)
+train_data <- WineQuality[trainIndex, ]
+test_data <- WineQuality[-trainIndex, ]
+
+# ==================================
+# Build Classification Tree Model (CART)
+# ==================================
+
+QualityTree <- rpart(quality ~ ., method = "class", data = train_data, cp = 0.001)
+
+# View variable importance
+print(QualityTree$variable.importance)
+
+# View complexity table
+print(QualityTree$cptable)
+
+# Plot Classification Tree
+rpart.plot(QualityTree, main = "Classification Tree for Wine Quality", type = 4, extra = 101)
+
+# ==================================
+# Model Performance - Training Data
+# ==================================
+
+train_predictions <- predict(QualityTree, newdata = train_data, type = "class")
+
+# Compute accuracy on training data
+train_accuracy <- mean(train_predictions == train_data$quality)
+cat("Training Accuracy:", train_accuracy, "\n")
+
+# Confusion matrix for training data
+confusion_matrix_train <- table(predicted = train_predictions, actual = train_data$quality)
+print(confusion_matrix_train)
+
+# ==================================
+# Model Performance - Test Data
+# ==================================
+
+test_predictions <- predict(QualityTree, newdata = test_data, type = "class")
+
+# Compute accuracy on test data
+test_accuracy <- mean(test_predictions == test_data$quality)
+cat("Test Accuracy:", test_accuracy, "\n")
+
+# Confusion matrix for test data
+confusion_matrix_test <- table(predicted = test_predictions, actual = test_data$quality)
+print(confusion_matrix_test)
+
+# ==================================
+# Pruning the Tree
+# ==================================
+
+# Prune tree based on minimum error
+pruned_Tree <- prune(QualityTree, cp = QualityTree$cptable[which.min(QualityTree$cptable[,"xerror"]), "CP"])
+
+# Plot Pruned Classification Tree
+rpart.plot(pruned_Tree, main = "Pruned Classification Tree for Wine Quality", type = 4, extra = 101)
+
+# Evaluate pruned model on train data
+train_pruned_predictions <- predict(pruned_Tree, newdata = train_data, type = "class")
+train_pruned_accuracy <- mean(train_pruned_predictions == train_data$quality)
+cat("Pruned Training Accuracy:", train_pruned_accuracy, "\n")
+
+# Evaluate pruned model on test data
+test_pruned_predictions <- predict(pruned_Tree, newdata = test_data, type = "class")
+test_pruned_accuracy <- mean(test_pruned_predictions == test_data$quality)
+cat("Pruned Test Accuracy:", test_pruned_accuracy, "\n")
+
+# ==================================
+# Optimize Complexity Parameter (CP)
+# ==================================
+
+cp_values <- c(0.0001, 0.0005, 0.001, 0.002, 0.004, 0.008, 0.01, 0.02, 0.04, 0.08, 0.1, 0.2, 0.4)
+error_results <- data.frame(complex_param = numeric(), train_error = numeric(), test_error = numeric())
+
+for (cp in cp_values) {
+  temp_tree <- rpart(quality ~ ., method = "class", data = train_data, cp = cp)
+  train_pred <- predict(temp_tree, newdata = train_data, type = "class")
+  train_error <- 1 - mean(train_pred == train_data$quality)
+  
+  test_pred <- predict(temp_tree, newdata = test_data, type = "class")
+  test_error <- 1 - mean(test_pred == test_data$quality)
+  
+  error_results <- rbind(error_results, data.frame(complex_param = cp, train_error = train_error, test_error = test_error))
+}
+
+# Display error rates for different CP values
+print(error_results)
+
+# ==================================
+# Model Insights and Summary
+# ==================================
+
+cat("\n--- Model Performance Summary ---\n")
+cat("Training Accuracy (Full Tree): ", train_accuracy, "\n")
+cat("Test Accuracy (Full Tree): ", test_accuracy, "\n")
+cat("Pruned Training Accuracy: ", train_pruned_accuracy, "\n")
+cat("Pruned Test Accuracy: ", test_pruned_accuracy, "\n")
+
+cat("\n--- Key Findings ---\n")
+cat("1. The most important variables are alcohol, density, and chlorides.\n")
+cat("2. The pruned model achieves better generalization, but test accuracy is still relatively low.\n")
+cat("3. Increasing the complexity parameter beyond 0.01 worsens model performance.\n")
+cat("4. The CART model tends to overfit, performing better on training data than test data.\n")
+cat("5. Further improvements could involve using Random Forest or boosting methods.\n")
