@@ -1,0 +1,81 @@
+# 1️⃣ Load Libraries & Data --------------------------------------
+install.packages("readxl")
+install.packages("neuralnet")
+library(readxl)
+library(neuralnet)
+
+# Load dataset
+data <- read_excel("data/Patient_data.xlsx")
+
+# View initial dataset structure
+print("🔍 Checking Data Structure:")
+str(data)
+
+# 2️⃣ Data Cleaning ---------------------------------------------
+print("Cleaning Data...")
+
+# Check for missing values
+if (sum(is.na(data)) > 0) {
+  print("⚠️ Missing values found! Handling them now...")
+  data[is.na(data)] <- median(data, na.rm = TRUE)
+} else {
+  print("✅ No missing values detected.")
+}
+
+# Convert categorical variables to factors
+data$gender <- as.factor(data$gender)
+data$smoking <- as.factor(data$smoking)
+
+# Save cleaned data
+write.csv(data, "data/cleaned_data.csv", row.names = FALSE)
+
+# 3️⃣ Feature Engineering --------------------------------------
+print("🔢 Performing Feature Engineering...")
+
+# Normalize numerical columns
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+num_cols <- c("age", "cholesterol", "blood_pressure")
+data[num_cols] <- lapply(data[num_cols], normalize)
+
+# Save processed data
+write.csv(data, "data/processed_data.csv", row.names = FALSE)
+
+# 4️⃣ Train-Test Split -----------------------------------------
+print("✂️ Splitting Data into Train & Test Sets...")
+
+set.seed(42)
+split_idx <- sample(1:nrow(data), size = 0.8 * nrow(data))
+train_data <- data[split_idx, ]
+test_data <- data[-split_idx, ]
+
+# 5️⃣ Train Neural Network Model ------------------------------
+print("🤖 Training Neural Network Model...")
+
+nn_model <- neuralnet(heart_attack ~ age + cholesterol + blood_pressure + smoking, 
+                      data = train_data, 
+                      hidden = c(5, 3), 
+                      linear.output = FALSE)
+
+# Save trained model
+saveRDS(nn_model, "models/neural_network_model.rds")
+
+# 6️⃣ Model Evaluation ----------------------------------------
+print("📊 Evaluating Model Performance...")
+
+# Load trained model
+nn_model <- readRDS("models/neural_network_model.rds")
+
+# Make predictions
+predictions <- compute(nn_model, test_data[, -ncol(test_data)])$net.result
+predicted_class <- ifelse(predictions > 0.5, 1, 0)
+
+# Calculate accuracy
+accuracy <- mean(predicted_class == test_data$heart_attack)
+
+# Save results
+write.csv(data.frame(Accuracy = accuracy), "results/model_performance.csv", row.names = FALSE)
+
+print(paste("✅ Model Accuracy:", round(accuracy * 100, 2), "%"))
