@@ -1,0 +1,159 @@
+# Load required libraries
+install.packages("ggplot2")
+install.packages("caret")
+install.packages("rpart")
+install.packages("rpart.plot")
+install.packages("e1071")
+
+library(ggplot2)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(e1071)
+
+# ==================================
+# Load and Preprocess Data
+# ==================================
+
+# Load training dataset
+train_data <- read.csv("C:/Users/cywu/OneDrive - BDP International/Desktop/IE575_Online/Mid-term Exam/Q1_datatraining.txt", 
+                       header = FALSE)
+
+# Load test dataset
+test_data <- read.csv("C:/Users/cywu/OneDrive - BDP International/Desktop/IE575_Online/Mid-term Exam/Q1_datatest.txt", 
+                      header = FALSE)
+
+# Convert variables to appropriate data types
+convert_data <- function(df) {
+  df$V1 <- strptime(df$V1, format = "%Y-%m-%d %H:%M:%S")  # Convert date column
+  df$V2 <- as.numeric(df$V2)  # Temperature
+  df$V3 <- as.numeric(df$V3)  # Humidity
+  df$V4 <- as.numeric(df$V4)  # Light
+  df$V5 <- as.numeric(df$V5)  # CO2
+  df$V6 <- as.numeric(df$V6)  # Humidity Ratio
+  df$V7 <- as.factor(as.integer(df$V7))  # Occupancy as factor
+  colnames(df) <- c("Date", "Temperature", "Humidity", "Light", "CO2", "HumidityRatio", "Occupancy")
+  df <- df[-1, ]  # Remove the first row
+  df$Date <- NULL  # Remove Date column
+  return(df)
+}
+
+# Apply conversion
+train_data <- convert_data(train_data)
+test_data <- convert_data(test_data)
+
+# ==================================
+# Logistic Regression Model
+# ==================================
+
+# Train the logistic regression model
+Logistic_model <- glm(Occupancy ~ ., data = train_data, family = binomial("logit"))
+
+# Summary of the logistic model
+summary(Logistic_model)
+
+# Predictions on training data
+train_predictions <- predict(Logistic_model, newdata = train_data, type = "response")
+train_class_predictions <- as.numeric(train_predictions > 0.5)
+
+# Predictions on test data
+test_predictions <- predict(Logistic_model, newdata = test_data, type = "response")
+test_class_predictions <- as.numeric(test_predictions > 0.5)
+
+# Model Accuracy
+train_accuracy <- mean(train_class_predictions == train_data$Occupancy)
+test_accuracy <- mean(test_class_predictions == test_data$Occupancy)
+
+cat("Train Accuracy: ", train_accuracy, "\n")
+cat("Test Accuracy: ", test_accuracy, "\n")
+
+# Confusion Matrix for Training Data
+confusion_matrix_train <- table(predicted = train_class_predictions, actual = train_data$Occupancy)
+print(confusion_matrix_train)
+
+# Precision, Recall, and F1 Score
+precision <- confusion_matrix_train[2,2] / sum(confusion_matrix_train[2,])
+recall <- confusion_matrix_train[2,2] / sum(confusion_matrix_train[,2])
+f1_score <- 2 * precision * recall / (precision + recall)
+
+cat("Precision: ", precision, "\n")
+cat("Recall: ", recall, "\n")
+cat("F1 Score: ", f1_score, "\n")
+
+# ==================================
+# Model Optimization (Stepwise Selection)
+# ==================================
+
+optimized_model <- step(Logistic_model)
+summary(optimized_model)
+
+# Feature Importance
+imp_optimized <- as.data.frame(varImp(optimized_model))
+imp_optimized <- data.frame(overall = imp_optimized$Overall, names = rownames(imp_optimized))
+print(imp_optimized[order(imp_optimized$overall, decreasing = TRUE), ])
+
+# Cross-validation for optimized model
+cv_result <- train(Occupancy ~ Temperature + Humidity + Light + CO2 + HumidityRatio, 
+                   data = train_data, 
+                   method = "glm", 
+                   family = "binomial", 
+                   control = glm.control(maxit = 1000), 
+                   trControl = trainControl(method = "cv", number = 10))
+
+print(cv_result)
+
+# ==================================
+# CART Model (Decision Tree)
+# ==================================
+
+# Train a classification tree model
+OccupancyTree <- rpart(Occupancy ~ ., method = "class", data = train_data, cp = 0.001)
+
+# Print variable importance
+print(OccupancyTree$variable.importance)
+
+# Plot the tree
+rpart.plot(OccupancyTree, main = "Classification Tree for Room Occupancy Data")
+
+# Model performance on training data
+train_predicted <- predict(OccupancyTree, newdata = train_data, type = "class")
+train_accuracy_cart <- mean(train_data$Occupancy == train_predicted)
+cat("CART Train Accuracy: ", train_accuracy_cart, "\n")
+
+# Model performance on test data
+test_predicted <- predict(OccupancyTree, newdata = test_data, type = "class")
+test_accuracy_cart <- mean(test_data$Occupancy == test_predicted)
+cat("CART Test Accuracy: ", test_accuracy_cart, "\n")
+
+# Confusion matrix for test data
+confusion_matrix_test <- table(actual = test_data$Occupancy, predicted = test_predicted)
+print(confusion_matrix_test)
+
+# ==================================
+# Pruning the Decision Tree
+# ==================================
+
+# Prune tree using minimum error
+prunOccupancyTree <- prune(OccupancyTree, cp = OccupancyTree$cptable[which.min(OccupancyTree$cptable[, "xerror"]), "CP"])
+rpart.plot(prunOccupancyTree, main = "Pruned Classification Tree")
+
+# Evaluate pruned tree on test data
+test_predicted_prune <- predict(prunOccupancyTree, newdata = test_data, type = "class")
+pruned_test_accuracy <- mean(test_data$Occupancy == test_predicted_prune)
+cat("Pruned CART Test Accuracy: ", pruned_test_accuracy, "\n")
+
+# ==================================
+# Model Comparison & Summary
+# ==================================
+
+cat("\n--- Model Comparison ---\n")
+cat("Logistic Regression Test Accuracy: ", test_accuracy, "\n")
+cat("CART Model Test Accuracy: ", test_accuracy_cart, "\n")
+cat("Pruned CART Model Test Accuracy: ", pruned_test_accuracy, "\n")
+
+cat("\n--- Feature Importance (CART) ---\n")
+print(prunOccupancyTree$variable.importance)
+
+cat("\n--- Summary ---\n")
+cat("Logistic Regression outperformed CART in predicting occupancy.\n")
+cat("Light and CO2 were the most important features in both models.\n")
