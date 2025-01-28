@@ -1,0 +1,91 @@
+# Load required libraries
+install.packages("nnet")
+install.packages("ggplot2")
+install.packages("caret")
+
+library(nnet)
+library(ggplot2)
+library(caret)
+
+# ==================================
+# Load and Explore Data
+# ==================================
+
+# Load dataset
+WineQuality <- read.csv("C:/Users/cywu/OneDrive - BDP International/Desktop/IE575_Online/Mid-term Exam/Q2_winequality.csv")
+
+# Structure and summary
+str(WineQuality)
+summary(WineQuality)
+
+# Check for missing values
+sum(is.na(WineQuality))  # Expecting 0
+
+# Convert categorical variables to factors
+WineQuality$winetype <- factor(WineQuality$winetype)
+WineQuality$quality <- factor(WineQuality$quality)
+
+# Check distribution of wine types
+table(WineQuality$winetype)
+
+# ==================================
+# Train/Test Split
+# ==================================
+
+set.seed(987954)  # Set seed for reproducibility
+trainIndex <- createDataPartition(WineQuality$quality, p = 0.85, list = FALSE)
+train_data <- WineQuality[trainIndex, ]
+test_data <- WineQuality[-trainIndex, ]
+
+# ==================================
+# Multinomial Logistic Regression Model
+# ==================================
+
+# Train the multinomial logistic regression model
+Logistic_model <- multinom(quality ~ ., data = train_data, maxit = 1000)
+
+# Summary of the model
+summary(Logistic_model)
+
+# ==================================
+# Model Evaluation - Training Data
+# ==================================
+
+train_predictions <- predict(Logistic_model, train_data)
+
+# Compute accuracy on training data
+train_accuracy <- mean(train_predictions == train_data$quality)
+cat("Training Accuracy:", train_accuracy, "\n")
+
+# Confusion matrix for training data
+confusion_matrix_train <- table(predicted = train_predictions, actual = train_data$quality)
+print(confusion_matrix_train)
+
+# ==================================
+# Model Evaluation - Test Data
+# ==================================
+
+test_predictions <- predict(Logistic_model, test_data)
+
+# Compute accuracy on test data
+test_accuracy <- mean(test_predictions == test_data$quality)
+cat("Test Accuracy:", test_accuracy, "\n")
+
+# Confusion matrix for test data
+confusion_matrix_test <- table(predicted = test_predictions, actual = test_data$quality)
+print(confusion_matrix_test)
+
+# ==================================
+# Model Insights and Summary
+# ==================================
+
+cat("\n--- Model Performance Summary ---\n")
+cat("Training Accuracy: ", train_accuracy, "\n")
+cat("Test Accuracy: ", test_accuracy, "\n")
+
+cat("\n--- Key Findings ---\n")
+cat("1. The model achieved ~54.88% accuracy on training data and ~53.61% on test data.\n")
+cat("2. The model struggles to distinguish quality ratings of 5 and 6, as seen in the confusion matrix.\n")
+cat("3. Important positive predictors: Alcohol, Sulphates, Citric Acid.\n")
+cat("4. Important negative predictors: Volatile Acidity, Chlorides, Density.\n")
+cat("5. White wines tend to have higher quality ratings compared to red wines.\n")
