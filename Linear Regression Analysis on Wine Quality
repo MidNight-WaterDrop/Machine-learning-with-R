@@ -1,0 +1,158 @@
+# Load required libraries
+install.packages("ggplot2")
+install.packages("gridExtra")
+install.packages("caret")
+
+library(ggplot2)
+library(gridExtra)
+library(caret)
+
+# ==================================
+# Load and Preprocess Data
+# ==================================
+
+# Load dataset
+WineQuality <- read.csv("C:/Users/cywu/OneDrive - BDP International/Desktop/IE575_Online/Mid-term Exam/WineQuality.csv")
+
+# Check for missing values
+sum(is.na(WineQuality))  # Expecting 0
+
+# ==================================
+# Data Visualization - Scatter Plots
+# ==================================
+
+scatter_plot_fixed_acidity <- ggplot(WineQuality, aes(x = quality, y = `fixed acidity`)) +
+  geom_point(size = 1, shape = 1) +
+  ggtitle("Fixed Acidity vs Quality") +
+  xlab("Quality") + ylab("Fixed Acidity")
+
+scatter_plot_volatile_acidity <- ggplot(WineQuality, aes(x = quality, y = `volatile acidity`)) +
+  geom_point(size = 1, shape = 1) +
+  ggtitle("Volatile Acidity vs Quality") +
+  xlab("Quality") + ylab("Volatile Acidity")
+
+scatter_plot_citric_acid <- ggplot(WineQuality, aes(x = quality, y = `citric acid`)) +
+  geom_point(size = 1, shape = 1) +
+  ggtitle("Citric Acid vs Quality") +
+  xlab("Quality") + ylab("Citric Acid")
+
+scatter_plot_residual_sugar <- ggplot(WineQuality, aes(x = quality, y = `residual sugar`)) +
+  geom_point(size = 1, shape = 1) +
+  ggtitle("Residual Sugar vs Quality") +
+  xlab("Quality") + ylab("Residual Sugar")
+
+grid.arrange(scatter_plot_fixed_acidity, scatter_plot_volatile_acidity, scatter_plot_citric_acid, scatter_plot_residual_sugar, ncol = 2)
+
+# ==================================
+# Train/Test Split
+# ==================================
+
+set.seed(123)
+trainIndex <- createDataPartition(WineQuality$quality, p = 0.7, list = FALSE)
+train_data <- WineQuality[trainIndex, ]
+test_data <- WineQuality[-trainIndex, ]
+
+# ==================================
+# Simple Linear Regression - Volatile Acidity
+# ==================================
+
+Simple_Linear_Regression <- lm(quality ~ `volatile acidity`, data = train_data)
+
+# Summary of the model
+summary(Simple_Linear_Regression)
+
+# Plot data and regression line
+plot(WineQuality$`volatile acidity`, WineQuality$quality, xlab = "Volatile Acidity", ylab = "Quality", 
+     main = "Relationship between Volatile Acidity and Quality")
+abline(Simple_Linear_Regression, col = "red")
+
+# Residual Analysis
+par(mfrow = c(2, 2))
+plot(Simple_Linear_Regression)
+
+# Model Performance Metrics
+mse <- function(y_p, y) { return(mean((y - y_p)^2)) }
+mae <- function(y_p, y) { return(mean(abs(y - y_p))) }
+
+# Evaluate Train data
+train_data_ypred <- predict(Simple_Linear_Regression, train_data)
+train_mse <- mse(train_data_ypred, train_data$quality)
+train_mae <- mae(train_data_ypred, train_data$quality)
+
+# Evaluate Test data
+test_data_ypred <- predict(Simple_Linear_Regression, test_data)
+test_mse <- mse(test_data_ypred, test_data$quality)
+test_mae <- mae(test_data_ypred, test_data$quality)
+
+cat("Simple Linear Regression (Volatile Acidity) - Train MSE:", train_mse, "\n")
+cat("Simple Linear Regression (Volatile Acidity) - Train MAE:", train_mae, "\n")
+cat("Simple Linear Regression (Volatile Acidity) - Test MSE:", test_mse, "\n")
+cat("Simple Linear Regression (Volatile Acidity) - Test MAE:", test_mae, "\n")
+
+# ==================================
+# Simple Linear Regression - Alcohol
+# ==================================
+
+Simple_Linear_Regression_2 <- lm(quality ~ alcohol, data = train_data)
+
+# Summary of the model
+summary(Simple_Linear_Regression_2)
+
+# Plot data and regression line
+plot(WineQuality$alcohol, WineQuality$quality, xlab = "Alcohol", ylab = "Quality", 
+     main = "Relationship between Alcohol and Quality")
+abline(Simple_Linear_Regression_2, col = "blue")
+
+# Residual Analysis
+par(mfrow = c(2, 2))
+plot(Simple_Linear_Regression_2)
+
+# Evaluate Train data
+train_data_ypred <- predict(Simple_Linear_Regression_2, train_data)
+train_mse <- mse(train_data_ypred, train_data$quality)
+train_mae <- mae(train_data_ypred, train_data$quality)
+
+# Evaluate Test data
+test_data_ypred <- predict(Simple_Linear_Regression_2, test_data)
+test_mse <- mse(test_data_ypred, test_data$quality)
+test_mae <- mae(test_data_ypred, test_data$quality)
+
+cat("Simple Linear Regression (Alcohol) - Train MSE:", train_mse, "\n")
+cat("Simple Linear Regression (Alcohol) - Train MAE:", train_mae, "\n")
+cat("Simple Linear Regression (Alcohol) - Test MSE:", test_mse, "\n")
+cat("Simple Linear Regression (Alcohol) - Test MAE:", test_mae, "\n")
+
+# ==================================
+# Multiple Linear Regression
+# ==================================
+
+Multiple_Linear_Regression <- lm(quality ~ ., data = train_data)
+
+# Summary of the model
+summary(Multiple_Linear_Regression)
+
+# Residual Analysis
+par(mfrow = c(2, 2))
+plot(Multiple_Linear_Regression)
+
+# Evaluate Train data
+train_data_ypred <- predict(Multiple_Linear_Regression, train_data)
+train_mse <- mse(train_data_ypred, train_data$quality)
+train_mae <- mae(train_data_ypred, train_data$quality)
+
+# Evaluate Test data
+test_data_ypred <- predict(Multiple_Linear_Regression, test_data)
+test_mse <- mse(test_data_ypred, test_data$quality)
+test_mae <- mae(test_data_ypred, test_data$quality)
+
+cat("Multiple Linear Regression - Train MSE:", train_mse, "\n")
+cat("Multiple Linear Regression - Train MAE:", train_mae, "\n")
+cat("Multiple Linear Regression - Test MSE:", test_mse, "\n")
+cat("Multiple Linear Regression - Test MAE:", test_mae, "\n")
+
+# ==================================
+# Model Optimization (Stepwise Selection)
+# ==================================
+
+optimized_model <- step(Multiple_Linear_Regression)
+summary(optimized_model)
