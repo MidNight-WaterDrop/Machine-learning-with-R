@@ -1,0 +1,85 @@
+# Install required packages
+install.packages("caret") 
+install.packages("RSNNS") 
+install.packages("neuralnet") 
+install.packages("nnet")
+
+# Load libraries
+library(caret) 
+library(RSNNS) 
+library(neuralnet) 
+library(nnet)
+
+# Load dataset
+default_of_credit_card_clients <- read_excel("default_of_credit_card_clients.xlsx", skip = 1) 
+credit <- default_of_credit_card_clients
+
+# Basic exploratory analysis
+head(credit) 
+summary(credit) 
+
+# Data cleaning and preprocessing
+credit <- credit[complete.cases(credit),] 
+credit$ID <- NULL 
+summary(credit)
+
+# Train-test split
+set.seed(4365677) 
+credit_sampling_vector <- createDataPartition(credit$`default payment next month`, p = 0.80, list = FALSE)
+credit_train <- credit[credit_sampling_vector,] 
+credit_test <- credit[-credit_sampling_vector,] 
+
+# Normalize all variables
+credit_pp <- preProcess(credit_train[,1:23], method = c("range")) 
+credit_train <- cbind(predict(credit_pp, credit_train[,1:23]), Type = credit_train$`default payment next month`) 
+credit_test <- predict(credit_pp, credit_test)
+
+# Model 1: Neural Network
+credit_model <- nnet(Type ~ ., data = credit_train, size = 10, maxit = 1000, trace = FALSE) 
+train_predictions1 <- predict(credit_model, credit_train[,1:24], type = "class") 
+test_predictions1 <- predict(credit_model, credit_test[,1:24], type = "class") 
+train_accuracy1 <- mean(train_predictions1 == credit_train$Type) 
+test_accuracy1 <- mean(test_predictions1 == credit_test$Type)
+
+# Model 2: Larger Neural Network
+credit_model2 <- nnet(Type ~ ., data = credit_train, size = 20, maxit = 10000, trace = FALSE) 
+train_predictions2 <- predict(credit_model2, credit_train[,1:23], type = "class") 
+test_predictions2 <- predict(credit_model2, credit_test[,1:23], type = "class") 
+train_accuracy2 <- mean(train_predictions2 == credit_train$Type) 
+test_accuracy2 <- mean(test_predictions2 == credit_test$Type)
+
+# Model 3: Neural Network with Decay
+credit_model3 <- nnet(Type~., data = credit_train, size = 10, maxit = 10000, decay = 0.01, trace = FALSE) 
+train_predictions3 <- predict(credit_model3, credit_train[,1:23], type = "class") 
+test_predictions3 <- predict(credit_model3, credit_test[,1:23], type = "class") 
+train_accuracy3 <- mean(train_predictions3 == credit_train$Type) 
+test_accuracy3 <- mean(test_predictions3 == credit_test$Type)
+
+# Variable Importance
+var_imp1 <- rowSums(varImp(credit_model))
+var_imp2 <- rowSums(varImp(credit_model2))
+var_imp3 <- rowSums(varImp(credit_model3))
+
+# Top 5 important variables
+sorted_scores1 <- sort(var_imp1, decreasing = TRUE)
+top_5_variables1 <- head(names(sorted_scores1), 5)
+
+sorted_scores2 <- sort(var_imp2, decreasing = TRUE)
+top_5_variables2 <- head(names(sorted_scores2), 5)
+
+sorted_scores3 <- sort(var_imp3, decreasing = TRUE)
+top_5_variables3 <- head(names(sorted_scores3), 5)
+
+# Correlation matrix
+library(psych)
+cor_matrix <- cor(credit_train[, 1:23])
+print(cor_matrix)
+
+# Class imbalance check
+class_distribution <- table(credit_train$Type)
+print(class_distribution)
+
+# Summary results
+cat("Model 1 Accuracy: Train =", train_accuracy1, "Test =", test_accuracy1, "\n")
+cat("Model 2 Accuracy: Train =", train_accuracy2, "Test =", test_accuracy2, "\n")
+cat("Model 3 Accuracy: Train =", train_accuracy3, "Test =", test_accuracy3, "\n")
