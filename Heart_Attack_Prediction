@@ -1,0 +1,79 @@
+library(dplyr)
+library(caret)
+
+# Load Data
+df <- read.csv("data/heart_attack_dataset.csv")
+
+# Check for Missing Values
+sum(is.na(df))
+
+# Convert Categorical Variables to Factors
+df <- df %>% mutate_if(is.character, as.factor)
+
+# Train-Test Split
+set.seed(123)
+trainIndex <- createDataPartition(df$target, p = 0.8, list = FALSE)
+train_data <- df[trainIndex, ]
+test_data <- df[-trainIndex, ]
+
+# Save Processed Data
+write.csv(train_data, "data/train_data.csv", row.names = FALSE)
+write.csv(test_data, "data/test_data.csv", row.names = FALSE)
+```
+
+### `model_C5.0.R`
+```r
+# Load Libraries
+library(C50)
+
+# Load Data
+train_data <- read.csv("data/train_data.csv")
+test_data <- read.csv("data/test_data.csv")
+
+# Train C5.0 Model
+C5_model <- C5.0(target ~ ., data = train_data)
+
+# Predictions
+test_pred <- predict(C5_model, test_data)
+
+# Save Model
+saveRDS(C5_model, "models/C5_model.rds")
+write.csv(test_pred, "results/C5_predictions.csv", row.names = FALSE)
+```
+
+### `model_CART.R`
+```r
+# Load Libraries
+library(rpart)
+
+# Load Data
+train_data <- read.csv("data/train_data.csv")
+test_data <- read.csv("data/test_data.csv")
+
+# Train CART Model
+CART_model <- rpart(target ~ ., data = train_data, method = "class")
+
+# Predictions
+test_pred <- predict(CART_model, test_data, type = "class")
+
+# Save Model
+saveRDS(CART_model, "models/CART_model.rds")
+write.csv(test_pred, "results/CART_predictions.csv", row.names = FALSE)
+```
+
+### `evaluation_metrics.R`
+```r
+# Load Libraries
+library(caret)
+
+# Load Predictions
+test_data <- read.csv("data/test_data.csv")
+C5_pred <- read.csv("results/C5_predictions.csv")
+CART_pred <- read.csv("results/CART_predictions.csv")
+
+# Confusion Matrix & Accuracy
+C5_cm <- confusionMatrix(as.factor(C5_pred), as.factor(test_data$target))
+CART_cm <- confusionMatrix(as.factor(CART_pred), as.factor(test_data$target))
+
+print(C5_cm)
+print(CART_cm)
