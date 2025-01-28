@@ -1,0 +1,111 @@
+# Linear Regression Analysis on Multiple Datasets
+
+# Load required libraries
+install.packages("ggplot2")
+library(ggplot2)
+
+# Dataset I
+data_I <- data.frame(
+  x = c(10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5),
+  y = c(8.04, 6.95, 7.58, 8.81, 8.33, 9.96, 7.24, 4.26, 10.84, 4.82, 5.68)
+)
+
+# Perform statistical analysis
+mean_x_I <- mean(data_I$x)
+mean_y_I <- mean(data_I$y)
+var_x_I <- var(data_I$x)
+var_y_I <- var(data_I$y)
+correlation_I <- cor(data_I$x, data_I$y)
+regression_I <- lm(y ~ x, data = data_I)
+
+# Print results
+summary(regression_I)
+
+# Plot Data I
+plot(data_I$x, data_I$y, pch = 16, col = "blue", xlab = "x", ylab = "y", main = "Data I Scatter Plot")
+abline(regression_I, col = "red")
+
+
+# Dataset II
+data_II <- data.frame(
+  x = c(10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5),
+  y = c(9.14, 8.14, 8.74, 8.77, 9.26, 8.1, 6.13, 3.1, 9.13, 7.26, 4.74)
+)
+
+# Perform statistical analysis
+mean_x_II <- mean(data_II$x)
+mean_y_II <- mean(data_II$y)
+var_x_II <- var(data_II$x)
+var_y_II <- var(data_II$y)
+correlation_II <- cor(data_II$x, data_II$y)
+regression_II <- lm(y ~ x, data = data_II)
+
+# Print results
+summary(regression_II)
+
+# Plot Data II
+plot(data_II$x, data_II$y, pch = 16, col = "blue", xlab = "x", ylab = "y", main = "Data II Scatter Plot")
+abline(regression_II, col = "red")
+
+
+# Dataset III
+data_III <- data.frame(
+  x = c(10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5),
+  y = c(7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73)
+)
+
+# Perform statistical analysis
+mean_x_III <- mean(data_III$x)
+mean_y_III <- mean(data_III$y)
+var_x_III <- var(data_III$x)
+var_y_III <- var(data_III$y)
+correlation_III <- cor(data_III$x, data_III$y)
+regression_III <- lm(y ~ x, data = data_III)
+
+# Print results
+summary(regression_III)
+
+# Plot Data III
+plot(data_III$x, data_III$y, pch = 16, col = "blue", xlab = "x", ylab = "y", main = "Data III Scatter Plot")
+abline(regression_III, col = "red")
+
+
+# Dataset IV
+data_IV <- data.frame(
+  x = c(8, 8, 8, 8, 8, 8, 8, 19, 8, 8, 8),
+  y = c(6.58, 5.76, 7.71, 8.84, 8.47, 7.04, 5.25, 12.5, 5.56, 7.91, 6.89)
+)
+
+# Perform statistical analysis
+mean_x_IV <- mean(data_IV$x)
+mean_y_IV <- mean(data_IV$y)
+var_x_IV <- var(data_IV$x)
+var_y_IV <- var(data_IV$y)
+correlation_IV <- cor(data_IV$x, data_IV$y)
+regression_IV <- lm(y ~ x, data = data_IV)
+
+# Print results
+summary(regression_IV)
+
+# Plot Data IV
+plot(data_IV$x, data_IV$y, pch = 16, col = "blue", xlab = "x", ylab = "y", main = "Data IV Scatter Plot")
+abline(regression_IV, col = "red")
+
+
+# Residual Analysis
+par(mfrow = c(2, 2))
+plot(regression_I, which = 1, main = "Residual Plot - Data I")
+plot(regression_II, which = 1, main = "Residual Plot - Data II")
+plot(regression_III, which = 1, main = "Residual Plot - Data III")
+plot(regression_IV, which = 1, main = "Residual Plot - Data IV")
+
+
+# Improvement for Data III by Removing Outlier
+data_III_clean <- subset(data_III, y < 12)  # Removing the outlier
+regression_III_improved <- lm(y ~ x, data = data_III_clean)
+
+# Improved Plot for Data III
+ggplot(data_III_clean, aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Data III - Improved", x = "x", y = "y")
