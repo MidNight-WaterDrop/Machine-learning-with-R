@@ -1,0 +1,109 @@
+# Midterm Exam - Problem 1: Data Exploration for Occupancy Detection
+
+# Load required libraries
+install.packages("ggplot2")
+install.packages("gridExtra")
+
+library(ggplot2)
+library(gridExtra)
+
+# Load dataset
+train_data <- read.csv("C:/Users/cywu/OneDrive - BDP International/Desktop/IE575_Online/Mid-term Exam/Q1_datatraining.txt", 
+                       header = FALSE)
+
+# Check structure and dimensions
+ncol(train_data)  # Should return 7
+nrow(train_data)  # Should return 8144
+str(train_data)   # Checking data types
+
+# Convert variables to appropriate data types
+train_data$V1 <- strptime(train_data$V1, format = "%Y-%m-%d %H:%M:%S")  # Convert date column
+train_data$V2 <- as.numeric(train_data$V2)  # Temperature
+train_data$V3 <- as.numeric(train_data$V3)  # Humidity
+train_data$V4 <- as.numeric(train_data$V4)  # Light
+train_data$V5 <- as.numeric(train_data$V5)  # CO2
+train_data$V6 <- as.numeric(train_data$V6)  # Humidity Ratio
+train_data$V7 <- as.logical(as.integer(train_data$V7))  # Occupancy (Boolean)
+
+# Rename columns
+colnames(train_data) <- c("Date", "Temperature", "Humidity", "Light", "CO2", "HumidityRatio", "Occupancy")
+
+# Remove the first row (since it contained column names before)
+train_data <- train_data[-1, ]
+
+# Check structure after conversion
+str(train_data)
+
+# Summary statistics for numeric variables
+summary(train_data[, sapply(train_data, is.numeric)])
+
+# Check Occupancy distribution
+table(train_data$Occupancy)
+
+# Check for missing values
+sum(is.na(train_data))
+
+# ==================================
+# Data Visualization: Histograms
+# ==================================
+
+hist_temp <- ggplot(train_data, aes(x = Temperature, fill = Occupancy)) +
+  geom_histogram(alpha = 0.5, bins = 15) +
+  labs(title = "Distribution of Temperature by Occupancy", x = "Temperature", y = "Counts")
+
+hist_humidity <- ggplot(train_data, aes(x = Humidity, fill = Occupancy)) +
+  geom_histogram(alpha = 0.5, bins = 15) +
+  labs(title = "Distribution of Humidity by Occupancy", x = "Humidity", y = "Counts")
+
+hist_light <- ggplot(train_data, aes(x = Light, fill = Occupancy)) +
+  geom_histogram(alpha = 0.5, bins = 15) +
+  labs(title = "Distribution of Light by Occupancy", x = "Light", y = "Counts")
+
+hist_co2 <- ggplot(train_data, aes(x = CO2, fill = Occupancy)) +
+  geom_histogram(alpha = 0.5, bins = 15) +
+  labs(title = "Distribution of CO2 by Occupancy", x = "CO2", y = "Counts")
+
+hist_humidityratio <- ggplot(train_data, aes(x = HumidityRatio, fill = Occupancy)) +
+  geom_histogram(alpha = 0.5, bins = 15) +
+  labs(title = "Distribution of HumidityRatio by Occupancy", x = "HumidityRatio", y = "Counts")
+
+# Arrange all histograms in a grid
+grid.arrange(hist_temp, hist_humidity, hist_light, hist_co2, hist_humidityratio, nrow = 2)
+
+# ==================================
+# Data Visualization: Box Plots
+# ==================================
+
+box_temp <- ggplot(train_data, aes(x = Occupancy, y = Temperature)) +
+  geom_boxplot() +
+  labs(title = "Temperature by Occupancy")
+
+box_humidity <- ggplot(train_data, aes(x = Occupancy, y = Humidity)) +
+  geom_boxplot() +
+  labs(title = "Humidity by Occupancy")
+
+box_light <- ggplot(train_data, aes(x = Occupancy, y = Light)) +
+  geom_boxplot() +
+  labs(title = "Light by Occupancy")
+
+box_co2 <- ggplot(train_data, aes(x = Occupancy, y = CO2)) +
+  geom_boxplot() +
+  labs(title = "CO2 by Occupancy")
+
+box_humidityratio <- ggplot(train_data, aes(x = Occupancy, y = HumidityRatio)) +
+  geom_boxplot() +
+  labs(title = "HumidityRatio by Occupancy")
+
+# Arrange all box plots in a grid
+grid.arrange(box_temp, box_humidity, box_light, box_co2, box_humidityratio, nrow = 1)
+
+# ==================================
+# Correlation Matrix
+# ==================================
+
+# Remove non-numeric column before calculating correlation
+numeric_data <- train_data[, sapply(train_data, is.numeric)]
+cor_matrix <- cor(numeric_data)
+
+# Print Correlation Matrix
+print(cor_matrix)
