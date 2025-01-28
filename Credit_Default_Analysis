@@ -1,0 +1,87 @@
+# Load required libraries
+library(caret)
+library(e1071)
+library(readxl)
+library(rpart)
+
+# Set seed for reproducibility
+set.seed(443452342)
+
+# Import dataset
+data <- read_excel("default_of_credit_card_clients.xlsx", skip = 1)
+
+# Convert target variable to factor
+data$`default payment next month` <- as.factor(data$`default payment next month`)
+
+# Data Exploration
+print(head(data))
+str(data)
+
+# Train-Test Split
+nb_sampling_vector <- createDataPartition(data$`default payment next month`, p = 0.8, list = FALSE)
+nb_train <- data[nb_sampling_vector, ]
+nb_test <- data[-nb_sampling_vector, ]
+
+# Naive Bayes Model
+nb_model <- naiveBayes(`default payment next month` ~ ., data = nb_train)
+
+# Predictions on Train Data
+nb_train_predictions <- predict(nb_model, nb_train)
+train_accuracy <- mean(nb_train$`default payment next month` == nb_train_predictions)
+cat("Naive Bayes Train Accuracy:", train_accuracy, "\\n")
+
+# Predictions on Test Data
+nb_test_predictions <- predict(nb_model, nb_test)
+test_accuracy <- mean(nb_test$`default payment next month` == nb_test_predictions)
+cat("Naive Bayes Test Accuracy:", test_accuracy, "\\n")
+
+# Correlation Matrix
+cor_matrix <- cor(nb_train[, -which(names(nb_train) == "default payment next month")])
+print(cor_matrix)
+
+# CART Classification Model
+QualityTree <- rpart(`default payment next month` ~ ., method = "class", data = nb_train, cp = 0.001)
+
+# CART Model Performance
+train_predicted <- predict(QualityTree, newdata = nb_train, type = "class")
+train_cart_accuracy <- mean(nb_train$`default payment next month` == train_predicted)
+cat("CART Train Accuracy:", train_cart_accuracy, "\\n")
+
+test_predicted <- predict(QualityTree, newdata = nb_test, type = "class")
+test_cart_accuracy <- mean(nb_test$`default payment next month` == test_predicted)
+cat("CART Test Accuracy:", test_cart_accuracy, "\\n")
+
+# Pruning the Tree
+prunQualityTree <- prune(QualityTree, cp = QualityTree$cptable[which.min(QualityTree$cptable[, "xerror"]), "CP"])
+
+# Evaluating Pruned Tree
+train_predicted_prune <- predict(prunQualityTree, newdata = nb_train, type = "class")
+train_prune_accuracy <- mean(nb_train$`default payment next month` == train_predicted_prune)
+cat("Pruned CART Train Accuracy:", train_prune_accuracy, "\\n")
+
+test_predicted_prune <- predict(prunQualityTree, newdata = nb_test, type = "class")
+test_prune_accuracy <- mean(nb_test$`default payment next month` == test_predicted_prune)
+cat("Pruned CART Test Accuracy:", test_prune_accuracy, "\\n")
+
+# Neural Networks Model Comparison
+# (Model details not included in original document, placeholder below)
+# nn_model <- train(`default payment next month` ~ ., data = nb_train, method = "nnet", trControl = trainControl(method = "cv"))
+# nn_predictions <- predict(nn_model, nb_test)
+# nn_test_accuracy <- mean(nb_test$`default payment next month` == nn_predictions)
+# cat("Neural Network Test Accuracy:", nn_test_accuracy, "\\n")
+
+# Summary of Findings
+cat("Summary:\\n")
+cat("- Naive Bayes performed well with an accuracy of around 71% on training data and 70% on test data.\\n")
+cat("- CART classification model's performance was lower than Naive Bayes.\\n")
+cat("- The pruned CART model showed slightly better generalization but still had room for improvement.\\n")
+cat("- Neural networks achieved high training accuracy but struggled with test accuracy.\\n")
+"""
+
+# Save to an R script file
+file_path = "/mnt/data/Assignment9_Credit_Default.R"
+with open(file_path, "w") as file:
+    file.write(r_script_content)
+
+# Provide the file to the user
+file_path
