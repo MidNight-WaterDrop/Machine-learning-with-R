@@ -1,5 +1,3 @@
-# Midterm Exam - Problem 1: Data Exploration for Occupancy Detection
-
 # Load required libraries
 install.packages("ggplot2")
 install.packages("gridExtra")
